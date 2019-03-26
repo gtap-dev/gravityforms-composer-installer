@@ -69,7 +69,9 @@ class Plugin implements PluginInterface, EventSubscriberInterface
                 $url = str_replace('{%' . $placeholder . '}', $value, $url);
             }
 
-            $url = str_replace('http://', 'https://', $this->getDownloadUrl($url));
+            if (strpos($url, 'www.gravityhelp.com') !== false) {
+                $url = str_replace('http://', 'https://', $this->getDownloadUrl($url));
+            }
 
             // Download file from different location
             $originalRemoteFilesystem = $event->getRemoteFilesystem();
