@@ -21,7 +21,7 @@ Add the desired private package to the `repositories` field inside `composer.jso
     },
     "require": {
       "composer/installers": "^1.4",
-      "gotoandplay/gravityforms-composer-installer": "dev-master"
+      "gotoandplay/gravityforms-composer-installer": "^1.0"
     }
   }
 },
