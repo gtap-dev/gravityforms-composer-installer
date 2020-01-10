@@ -62,7 +62,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface
 	{
 		$package = $this->getOperationPackage($event->getOperation());
 		$url     = $package->getDistUrl();
-		$url     = str_replace( 'http://', 'https://', $this->getDownloadUrl($url));
+		$url     = $this->getDownloadUrl($url);
 		$package->setDistUrl($url);
 	}
 
