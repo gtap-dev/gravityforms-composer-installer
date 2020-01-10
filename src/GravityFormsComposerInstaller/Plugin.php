@@ -58,13 +58,15 @@ class Plugin implements PluginInterface, EventSubscriberInterface
 	 * @param PackageEvent $event
 	 * @return void
 	 */
-	public function setDownloadUri(PackageEvent $event): void
-	{
-		$package = $this->getOperationPackage($event->getOperation());
-		$url     = $package->getDistUrl();
-		$url     = $this->getDownloadUrl($url);
-		$package->setDistUrl($url);
-	}
+    public function setDownloadUri(PackageEvent $event)
+    {
+        $package = $this->getOperationPackage($event->getOperation());
+        $url     = $package->getDistUrl();
+        if (strpos($url, 'www.gravityhelp.com') !== false) {
+            $url = $this->getDownloadUrl($url);
+            $package->setDistUrl($url);
+        }
+    }
 
     /**
      * Replaces placeholders with corresponding environment variables.
