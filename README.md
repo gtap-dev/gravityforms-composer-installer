@@ -17,7 +17,7 @@ Add the desired private package to the `repositories` field inside `composer.jso
     "type": "wordpress-plugin",
     "dist": {
       "type": "zip",
-      "url": "http://www.gravityhelp.com/wp-content/plugins/gravitymanager/api.php?op=get_plugin&slug=gravityforms&key={%WP_PLUGIN_GF_KEY}"
+      "url": "https://www.gravityhelp.com/wp-content/plugins/gravitymanager/api.php?op=get_plugin&slug=gravityforms&key={%WP_PLUGIN_GF_KEY}"
     },
     "require": {
       "composer/installers": "^1.4",
