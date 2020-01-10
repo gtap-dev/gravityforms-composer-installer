@@ -60,10 +60,10 @@ class Plugin implements PluginInterface, EventSubscriberInterface
 	 */
 	public function setDownloadUri(PackageEvent $event): void
 	{
-		$package = $this->getOperationPackage( $event->getOperation() );
+		$package = $this->getOperationPackage($event->getOperation());
 		$url     = $package->getDistUrl();
-		$url     = str_replace( 'http://', 'https://', $this->getDownloadUrl( $url ) );
-		$package->setDistUrl( $url );
+		$url     = str_replace( 'http://', 'https://', $this->getDownloadUrl($url));
+		$package->setDistUrl($url);
 	}
 
     /**
