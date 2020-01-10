@@ -38,6 +38,8 @@ class Plugin implements PluginInterface, EventSubscriberInterface
     public static function getSubscribedEvents()
     {
         return [
+	        PackageEvents::PRE_PACKAGE_INSTALL => 'setDownloadUri',
+	        PackageEvents::PRE_PACKAGE_UPDATE => 'setDownloadUri',
             PluginEvents::PRE_FILE_DOWNLOAD => ['injectPlaceholders', -1],
         ];
     }
@@ -50,6 +52,19 @@ class Plugin implements PluginInterface, EventSubscriberInterface
         $this->composer = $composer;
         $this->io = $io;
     }
+
+	/**
+	 * Use the URI provided by the Gravity Forms API
+	 * @param PackageEvent $event
+	 * @return void
+	 */
+	public function setDownloadUri(PackageEvent $event): void
+	{
+		$package = $this->getOperationPackage( $event->getOperation() );
+		$url     = $package->getDistUrl();
+		$url     = str_replace( 'http://', 'https://', $this->getDownloadUrl( $url ) );
+		$package->setDistUrl( $url );
+	}
 
     /**
      * Replaces placeholders with corresponding environment variables.
