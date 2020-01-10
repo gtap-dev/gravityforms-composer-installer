@@ -186,6 +186,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface
         $context = [
             'http' => [
                 'request_fulluri' => true,
+                'user_agent' => Composer::VERSION,
             ]
         ];
 
