@@ -100,18 +100,14 @@ class Plugin implements PluginInterface, EventSubscriberInterface
         }
     }
 
-    public function getDownloadUrl($url) {
+    public function getDownloadUrl($url)
+    {
         try {
-            // create an instance of Httprequest
-            $http = new \Comodojo\Httprequest\Httprequest($url);
-
-            $http->setTimeout(30);
-            $http->setHeader('Accept', 'text/plain');
-
             // get remote data
-            $result = $http->get();
-            $body   = trim($result);
+            $result      = file_get_contents($url, false);
+            $body        = trim($result);
             $plugin_info = unserialize($body);
+
             return isset($plugin_info['download_url_latest']) ? $plugin_info['download_url_latest'] : '';
 
         } catch (\Exception $e) {
