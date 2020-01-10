@@ -11,6 +11,7 @@ use Composer\IO\IOInterface;
 use Composer\Plugin\PluginEvents;
 use Composer\Plugin\PluginInterface;
 use Composer\Plugin\PreFileDownloadEvent;
+use Composer\Util\StreamContextFactory;
 use Dotenv\Dotenv;
 use gotoAndDev\GravityFormsComposerInstaller\Exception\MissingEnvException;
 use gotoAndDev\GravityFormsComposerInstaller\Exception\DownloadException;
@@ -107,7 +108,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface
 
         try {
             // get remote data
-            $result = file_get_contents($url, false, $this->getHttpContext());
+            $result = file_get_contents($url, false, $this->getHttpContext($url));
         } catch (\Exception $e) {
             throw $e;
             throw new DownloadException($url);
@@ -181,17 +182,8 @@ class Plugin implements PluginInterface, EventSubscriberInterface
         return array_unique($placeholders);
     }
 
-    protected function getHttpContext()
+    protected function getHttpContext($url)
     {
-        $context = [
-            'http' => [
-                'request_fulluri' => true,
-                'header' => [
-                    sprintf( 'User-Agent: %s', Composer::VERSION ),
-                ]
-            ]
-        ];
-
-        return stream_context_create($context);
+        return StreamContextFactory::getContext($url);
     }
 }
