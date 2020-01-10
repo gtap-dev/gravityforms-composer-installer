@@ -77,7 +77,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface
 
             $url = $this->getDownloadUrl($url);
 
-            if ( ! empty($url)) {
+            if (! empty($url)) {
                 $package->setDistUrl($url);
             }
         }
