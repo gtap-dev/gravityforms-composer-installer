@@ -17,6 +17,9 @@ use gotoAndDev\GravityFormsComposerInstaller\Exception\DownloadException;
 
 class Plugin implements PluginInterface, EventSubscriberInterface
 {
+
+    const GRAVITY_FORMS_API = 'www.gravityhelp.com';
+
     /**
      * @var Composer
      */
@@ -38,8 +41,8 @@ class Plugin implements PluginInterface, EventSubscriberInterface
     public static function getSubscribedEvents()
     {
 	    return [
-		    PackageEvents::PRE_PACKAGE_INSTALL => 'setDownloadUri',
-		    PackageEvents::PRE_PACKAGE_UPDATE  => 'setDownloadUri',
+		    //PackageEvents::PRE_PACKAGE_INSTALL => 'setDownloadUri',
+		    //PackageEvents::PRE_PACKAGE_UPDATE  => 'setDownloadUri',
 		    PluginEvents::PRE_FILE_DOWNLOAD    => [ 'injectPlaceholders', - 1 ],
 	    ];
     }
@@ -62,10 +65,8 @@ class Plugin implements PluginInterface, EventSubscriberInterface
     {
         $package = $this->getOperationPackage($event->getOperation());
         $url     = $package->getDistUrl();
-        if (strpos($url, 'www.gravityhelp.com') !== false) {
-            $url = $this->getDownloadUrl($url);
-            $package->setDistUrl($url);
-        }
+        $url     = $this->getDownloadUrl($url);
+        $package->setDistUrl($url);
     }
 
     /**
@@ -83,11 +84,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface
             // Replace each placeholder with env var
             foreach ($placeholders as $placeholder) {
                 $value = $this->getEnv($placeholder);
-                $url = str_replace('{%' . $placeholder . '}', $value, $url);
-            }
-
-            if (strpos($url, 'www.gravityhelp.com') !== false) {
-                $url = str_replace('http://', 'https://', $this->getDownloadUrl($url));
+                $url   = str_replace('{%'.$placeholder.'}', $value, $url);
             }
 
             // Download file from different location
@@ -104,20 +101,22 @@ class Plugin implements PluginInterface, EventSubscriberInterface
 
     public function getDownloadUrl($url)
     {
+        if (strpos($url, self::GRAVITY_FORMS_API) === false) {
+            return $url;
+        }
+
         try {
             // get remote data
-            $result      = file_get_contents($url, false);
-            $body        = trim($result);
-            $plugin_info = unserialize($body);
-
-            return isset($plugin_info['download_url_latest']) ? $plugin_info['download_url_latest'] : '';
-
+            $result = file_get_contents($url, false, $this->getHttpContext());
         } catch (\Exception $e) {
             throw $e;
             throw new DownloadException($url);
         }
 
-        return $url;
+        $body        = trim($result);
+        $plugin_info = unserialize($body);
+
+        return isset($plugin_info['download_url_latest']) ? $plugin_info['download_url_latest'] : '';
     }
 
     /**
@@ -180,5 +179,16 @@ class Plugin implements PluginInterface, EventSubscriberInterface
             array_push($placeholders, $match);
         }
         return array_unique($placeholders);
+    }
+
+    protected function getHttpContext()
+    {
+        $context = [
+            'http' => [
+                'request_fulluri' => true,
+            ]
+        ];
+
+        return stream_context_create($context);
     }
 }
