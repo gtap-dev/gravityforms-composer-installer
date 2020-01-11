@@ -41,11 +41,11 @@ class Plugin implements PluginInterface, EventSubscriberInterface
      */
     public static function getSubscribedEvents()
     {
-	    return [
-		    PackageEvents::PRE_PACKAGE_INSTALL => 'setDownloadUri',
-		    PackageEvents::PRE_PACKAGE_UPDATE  => 'setDownloadUri',
-		    PluginEvents::PRE_FILE_DOWNLOAD    => [ 'injectPlaceholders', - 1 ],
-	    ];
+        return [
+            PackageEvents::PRE_PACKAGE_INSTALL => 'setDownloadUri',
+            PackageEvents::PRE_PACKAGE_UPDATE  => 'setDownloadUri',
+            PluginEvents::PRE_FILE_DOWNLOAD    => [ 'injectPlaceholders', - 1 ],
+        ];
     }
 
     /**
