@@ -16,16 +16,24 @@ class Plugin extends \FFraenz\PrivateComposerInstaller\Plugin implements PluginI
 
     const GRAVITY_FORMS_API = 'www.gravityhelp.com';
 
+	/**
+	 * Merge our events with
+	 * @return array
+	 */
     public static function getSubscribedEvents() {
-	    $events = parent::getSubscribedEvents();
-
-	    $localEvents = [
+	    return [
 		    PluginEvents::PRE_FILE_DOWNLOAD    => ['replaceDownloadUrl', -2],
 	    ];
-
-	    return array_merge( $events, $localEvents );
     }
 
+	/**
+	 * Replace the download URL with the AWS URL from the Gravity Forms' API
+	 *
+	 * @param  PreFileDownloadEvent  $event
+	 *
+	 * @throws DownloadException
+	 * @throws \FFraenz\PrivateComposerInstaller\Exception\MissingEnvException
+	 */
     public function replaceDownloadUrl(PreFileDownloadEvent $event): void {
 	    $url = $event->getProcessedUrl();
 
@@ -33,18 +41,28 @@ class Plugin extends \FFraenz\PrivateComposerInstaller\Plugin implements PluginI
 		    return;
 	    }
 
-	    $url = $this->getDownloadUrl($url);
+	    // Check if package url contains any placeholders
+	    $placeholders = $this->getUrlPlaceholders($url);
 
-	    // Download file from different location
-	    $originalRemoteFilesystem = $event->getRemoteFilesystem();
+	    if (count($placeholders) > 0) {
+		    // Replace each placeholder with env var
+		    foreach ($placeholders as $placeholder) {
+			    $value = $this->env->get($placeholder);
+			    $url = str_replace('{%' . $placeholder . '}', $value, $url);
+		    }
 
-	    $event->setRemoteFilesystem(new RemoteFilesystem(
-		    $url,
-		    $this->io,
-		    $this->composer->getConfig(),
-		    $originalRemoteFilesystem->getOptions(),
-		    $originalRemoteFilesystem->isTlsDisabled()
-	    ));
+		    $url = $this->getDownloadUrl($url);
+
+		    // Download file from different location
+		    $originalRemoteFilesystem = $event->getRemoteFilesystem();
+		    $event->setRemoteFilesystem(new RemoteFilesystem(
+			    $url,
+			    $this->io,
+			    $this->composer->getConfig(),
+			    $originalRemoteFilesystem->getOptions(),
+			    $originalRemoteFilesystem->isTlsDisabled()
+		    ));
+	    }
     }
 
 	/**
