@@ -71,7 +71,7 @@ class Plugin extends \FFraenz\PrivateComposerInstaller\Plugin implements PluginI
 	 * @throws DownloadException
 	 * @throws Exception
 	 */
-    protected function getDownloadUrl($url)
+    public function getDownloadUrl($url)
     {
 	    $result = file_get_contents($url, false, $this->getHttpContext($url));
 
