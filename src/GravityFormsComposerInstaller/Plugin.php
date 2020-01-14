@@ -16,25 +16,33 @@ class Plugin extends \FFraenz\PrivateComposerInstaller\Plugin implements PluginI
     const GRAVITY_FORMS_API = 'www.gravityhelp.com';
 
     public function injectVersion( PackageEvent $event ): void {
-	    parent::injectVersion( $event );
-
 	    $url = $event->getProcessedUrl();
 
 	    if (strpos($url, self::GRAVITY_FORMS_API) === false) {
 		    return;
 	    }
 
-	    $url = $this->getDownloadUrl($url);
+	    // Check if package url contains any placeholders
+	    $placeholders = $this->getUrlPlaceholders($url);
+	    if (count($placeholders) > 0) {
+		    // Replace each placeholder with env var
+		    foreach ($placeholders as $placeholder) {
+			    $value = $this->env->get($placeholder);
+			    $url = str_replace('{%' . $placeholder . '}', $value, $url);
+		    }
 
-	    // Download file from different location
-	    $originalRemoteFilesystem = $event->getRemoteFilesystem();
-	    $event->setRemoteFilesystem(new RemoteFilesystem(
-		    $url,
-		    $this->io,
-		    $this->composer->getConfig(),
-		    $originalRemoteFilesystem->getOptions(),
-		    $originalRemoteFilesystem->isTlsDisabled()
-	    ));
+		    $url = $this->getDownloadUrl($url);
+
+		    // Download file from different location
+		    $originalRemoteFilesystem = $event->getRemoteFilesystem();
+		    $event->setRemoteFilesystem(new RemoteFilesystem(
+			    $url,
+			    $this->io,
+			    $this->composer->getConfig(),
+			    $originalRemoteFilesystem->getOptions(),
+			    $originalRemoteFilesystem->isTlsDisabled()
+		    ));
+	    }
     }
 
 	/**
