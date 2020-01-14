@@ -21,9 +21,13 @@ class Plugin extends \FFraenz\PrivateComposerInstaller\Plugin implements PluginI
 	 * @return array
 	 */
     public static function getSubscribedEvents() {
-	    return [
+	    $events = parent::getSubscribedEvents();
+
+	    $localEvents = [
 		    PluginEvents::PRE_FILE_DOWNLOAD    => ['replaceDownloadUrl', -2],
 	    ];
+
+	    return array_merge( $events, $localEvents );
     }
 
 	/**
