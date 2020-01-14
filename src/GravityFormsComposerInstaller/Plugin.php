@@ -41,7 +41,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface
     public static function getSubscribedEvents()
     {
 	    return [
-		    PluginEvents::PRE_FILE_DOWNLOAD    => [ 'injectPlaceholders', -2 ],
+		    PluginEvents::PRE_FILE_DOWNLOAD    => [ 'injectPlaceholders', 1 ],
 	    ];
     }
 
