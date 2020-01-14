@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b85da774d523f3bdadacb94f4af9c340",
+    "content-hash": "857f47668b95e91d8b2296587c7122e5",
     "packages": [
         {
             "name": "ffraenz/private-composer-installer",
@@ -2591,7 +2591,8 @@
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
-        "php": "^7.1"
+        "php": "^7.1",
+        "composer-plugin-api": "^1.0.0"
     },
     "platform-dev": []
 }
