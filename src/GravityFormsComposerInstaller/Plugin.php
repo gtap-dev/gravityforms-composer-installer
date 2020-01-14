@@ -16,34 +16,17 @@ class Plugin extends \FFraenz\PrivateComposerInstaller\Plugin implements PluginI
 
     const GRAVITY_FORMS_API = 'www.gravityhelp.com';
 
-	public function injectVersion(PackageEvent $event): void
-	{
-		$package = $this->getOperationPackage($event->getOperation());
-		$url = $package->getDistUrl();
-
-		if (strpos($url, self::GRAVITY_FORMS_API) === false) {
-			return;
-		}
-
-		// Check if package dist url contains any placeholders
-		$placeholders = $this->getUrlPlaceholders($url);
-		if (count($placeholders) > 0) {
-			// Replace each placeholder with env var
-			foreach ($placeholders as $placeholder) {
-				$value = $this->env->get($placeholder);
-				$url = str_replace('{%' . $placeholder . '}', $value, $url);
-			}
-
-			$url = $this->getDownloadUrl($url);
-
-			$package->setDistUrl($url);
-		}
-	}
-
+	/**
+	 * Replaces placeholders with corresponding environment variables and overrides the download URL
+	 *
+	 * @param  PreFileDownloadEvent  $event
+	 *
+	 * @return void
+	 * @throws DownloadException
+	 * @throws \FFraenz\PrivateComposerInstaller\Exception\MissingEnvException
+	 */
 	public function injectPlaceholders(PreFileDownloadEvent $event): void
 	{
-		parent::injectPlaceholders($event);
-
 		$url = $event->getProcessedUrl();
 
 		if (strpos($url, self::GRAVITY_FORMS_API) === false) {
@@ -52,6 +35,7 @@ class Plugin extends \FFraenz\PrivateComposerInstaller\Plugin implements PluginI
 
 		// Check if package url contains any placeholders
 		$placeholders = $this->getUrlPlaceholders($url);
+
 		if (count($placeholders) > 0) {
 			// Replace each placeholder with env var
 			foreach ($placeholders as $placeholder) {
@@ -59,10 +43,12 @@ class Plugin extends \FFraenz\PrivateComposerInstaller\Plugin implements PluginI
 				$url = str_replace('{%' . $placeholder . '}', $value, $url);
 			}
 
+			// Override the Gravity Forms' URL with the AWS URL retrieved from the API
 			$url = $this->getDownloadUrl($url);
 
 			// Download file from different location
 			$originalRemoteFilesystem = $event->getRemoteFilesystem();
+
 			$event->setRemoteFilesystem(new RemoteFilesystem(
 				$url,
 				$this->io,
@@ -70,6 +56,9 @@ class Plugin extends \FFraenz\PrivateComposerInstaller\Plugin implements PluginI
 				$originalRemoteFilesystem->getOptions(),
 				$originalRemoteFilesystem->isTlsDisabled()
 			));
+
+			// Stop other events from running and overriding this
+			$event->stopPropagation();
 		}
 	}
 
