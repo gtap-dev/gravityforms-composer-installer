@@ -73,7 +73,7 @@ class Plugin extends \FFraenz\PrivateComposerInstaller\Plugin implements PluginI
 	 */
     public function getDownloadUrl($url)
     {
-	    $result = file_get_contents($url, false, $this->getHttpContext($url));
+	    $result = file_get_contents($url, false, StreamContextFactory::getContext($url));
 
 	    if(false === $result) {
 		    throw new DownloadException($url);
@@ -89,17 +89,5 @@ class Plugin extends \FFraenz\PrivateComposerInstaller\Plugin implements PluginI
         }
 
         return $download_url;
-    }
-
-	/**
-	 * Get the HTTP context for this URL
-	 *
-	 * @param $url
-	 *
-	 * @return resource
-	 */
-    protected function getHttpContext($url)
-    {
-        return StreamContextFactory::getContext($url);
     }
 }
