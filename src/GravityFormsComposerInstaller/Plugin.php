@@ -4,7 +4,6 @@ namespace gotoAndDev\GravityFormsComposerInstaller;
 
 use Exception;
 use Composer\Plugin\PluginInterface;
-use Composer\Installer\PackageEvent;
 use Composer\Util\StreamContextFactory;
 use Composer\Plugin\PreFileDownloadEvent;
 use Composer\EventDispatcher\EventSubscriberInterface;
