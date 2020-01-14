@@ -3,9 +3,8 @@
 namespace gotoAndDev\GravityFormsComposerInstaller;
 
 use Exception;
-use Composer\Plugin\PluginEvents;
 use Composer\Plugin\PluginInterface;
-use Composer\Plugin\PreFileDownloadEvent;
+use Composer\Installer\PackageEvent;
 use Composer\Util\StreamContextFactory;
 use Composer\EventDispatcher\EventSubscriberInterface;
 use gotoAndDev\GravityFormsComposerInstaller\Exception\DownloadException;
@@ -16,57 +15,26 @@ class Plugin extends \FFraenz\PrivateComposerInstaller\Plugin implements PluginI
 
     const GRAVITY_FORMS_API = 'www.gravityhelp.com';
 
-	/**
-	 * Merge our events with
-	 * @return array
-	 */
-    public static function getSubscribedEvents() {
-	    $events = parent::getSubscribedEvents();
+    public function injectVersion( PackageEvent $event ): void {
+	    parent::injectVersion( $event );
 
-	    $localEvents = [
-		    PluginEvents::PRE_FILE_DOWNLOAD    => ['replaceDownloadUrl', -2],
-	    ];
-
-	    return array_merge( $events, $localEvents );
-    }
-
-	/**
-	 * Replace the download URL with the AWS URL from the Gravity Forms' API
-	 *
-	 * @param  PreFileDownloadEvent  $event
-	 *
-	 * @throws DownloadException
-	 * @throws \FFraenz\PrivateComposerInstaller\Exception\MissingEnvException
-	 */
-    public function replaceDownloadUrl(PreFileDownloadEvent $event): void {
 	    $url = $event->getProcessedUrl();
 
 	    if (strpos($url, self::GRAVITY_FORMS_API) === false) {
 		    return;
 	    }
 
-	    // Check if package url contains any placeholders
-	    $placeholders = $this->getUrlPlaceholders($url);
+	    $url = $this->getDownloadUrl($url);
 
-	    if (count($placeholders) > 0) {
-		    // Replace each placeholder with env var
-		    foreach ($placeholders as $placeholder) {
-			    $value = $this->env->get($placeholder);
-			    $url = str_replace('{%' . $placeholder . '}', $value, $url);
-		    }
-
-		    $url = $this->getDownloadUrl($url);
-
-		    // Download file from different location
-		    $originalRemoteFilesystem = $event->getRemoteFilesystem();
-		    $event->setRemoteFilesystem(new RemoteFilesystem(
-			    $url,
-			    $this->io,
-			    $this->composer->getConfig(),
-			    $originalRemoteFilesystem->getOptions(),
-			    $originalRemoteFilesystem->isTlsDisabled()
-		    ));
-	    }
+	    // Download file from different location
+	    $originalRemoteFilesystem = $event->getRemoteFilesystem();
+	    $event->setRemoteFilesystem(new RemoteFilesystem(
+		    $url,
+		    $this->io,
+		    $this->composer->getConfig(),
+		    $originalRemoteFilesystem->getOptions(),
+		    $originalRemoteFilesystem->isTlsDisabled()
+	    ));
     }
 
 	/**
