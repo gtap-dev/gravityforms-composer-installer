@@ -5,14 +5,13 @@ namespace gotoAndDev\GravityFormsComposerInstaller;
 use Composer\Composer;
 use Composer\DependencyResolver\Operation\OperationInterface;
 use Composer\EventDispatcher\EventSubscriberInterface;
-use Composer\Installer\PackageEvent;
-use Composer\Installer\PackageEvents;
 use Composer\IO\IOInterface;
 use Composer\Plugin\PluginEvents;
 use Composer\Plugin\PluginInterface;
 use Composer\Plugin\PreFileDownloadEvent;
 use Composer\Util\StreamContextFactory;
 use Dotenv\Dotenv;
+use Exception;
 use gotoAndDev\GravityFormsComposerInstaller\Exception\MissingEnvException;
 use gotoAndDev\GravityFormsComposerInstaller\Exception\DownloadException;
 
@@ -37,14 +36,12 @@ class Plugin implements PluginInterface, EventSubscriberInterface
     protected $envInitialized = false;
 
     /**
-     * @inheritdoc
+     * Run PRE_FILE_DOWNLOAD before ffraenz/private-composer-installer and hirak/prestissimo
      */
     public static function getSubscribedEvents()
     {
 	    return [
-		    PackageEvents::PRE_PACKAGE_INSTALL => 'setDownloadUri',
-		    PackageEvents::PRE_PACKAGE_UPDATE  => 'setDownloadUri',
-		    PluginEvents::PRE_FILE_DOWNLOAD    => [ 'injectPlaceholders', - 1 ],
+		    PluginEvents::PRE_FILE_DOWNLOAD    => [ 'injectPlaceholders', -2 ],
 	    ];
     }
 
@@ -57,43 +54,26 @@ class Plugin implements PluginInterface, EventSubscriberInterface
         $this->io = $io;
     }
 
-    /**
-     * Use the URI provided by the Gravity Forms API
-     * @param PackageEvent $event
-     * @return void
-     */
-    public function setDownloadUri(PackageEvent $event)
-    {
-        $package = $this->getOperationPackage($event->getOperation());
-        $url     = $package->getDistUrl();
-        // Check if package url contains any placeholders
-        $placeholders = $this->getUrlPlaceholders($url);
-        if (count($placeholders) > 0) {
-            // Replace each placeholder with env var
-            foreach ($placeholders as $placeholder) {
-                $value = $this->getEnv($placeholder);
-                $url   = str_replace('{%'.$placeholder.'}', $value, $url);
-            }
-
-            $url = $this->getDownloadUrl($url);
-
-            if (! empty($url)) {
-                $package->setDistUrl($url);
-            }
-        }
-    }
-
-    /**
-     * Replaces placeholders with corresponding environment variables.
-     * @param PreFileDownloadEvent $event
-     * @return void
-     */
+	/**
+	 * Replaces placeholders with corresponding environment variables and replaces the download URL.
+	 *
+	 * @param  PreFileDownloadEvent  $event
+	 *
+	 * @return void
+	 * @throws DownloadException
+	 * @throws MissingEnvException
+	 */
     public function injectPlaceholders(PreFileDownloadEvent $event)
     {
         $url = $event->getProcessedUrl();
 
+	    if (strpos($url, self::GRAVITY_FORMS_API) === false) {
+		    return;
+	    }
+
         // Check if package url contains any placeholders
         $placeholders = $this->getUrlPlaceholders($url);
+
         if (count($placeholders) > 0) {
             // Replace each placeholder with env var
             foreach ($placeholders as $placeholder) {
@@ -101,8 +81,12 @@ class Plugin implements PluginInterface, EventSubscriberInterface
                 $url   = str_replace('{%'.$placeholder.'}', $value, $url);
             }
 
+            // Replace URL with Gravity Form's AWS url
+            $url = $this->getDownloadUrl($url);
+
             // Download file from different location
             $originalRemoteFilesystem = $event->getRemoteFilesystem();
+
             $event->setRemoteFilesystem(new RemoteFilesystem(
                 $url,
                 $this->io,
@@ -113,28 +97,38 @@ class Plugin implements PluginInterface, EventSubscriberInterface
         }
     }
 
+	/**
+	 * Get the AWS Download URL from the Gravity Forms API
+	 *
+	 * @param $url
+	 *
+	 * @return string
+	 * @throws DownloadException
+	 * @throws Exception
+	 */
     public function getDownloadUrl($url)
     {
-        if (strpos($url, self::GRAVITY_FORMS_API) === false) {
-            return $url;
-        }
+	    $result = file_get_contents($url, false, $this->getHttpContext($url));
 
-        try {
-            // get remote data
-            $result = file_get_contents($url, false, $this->getHttpContext($url));
-        } catch (\Exception $e) {
-            throw $e;
-            throw new DownloadException($url);
-        }
+	    if( false === $result ) {
+		    throw new DownloadException($url);
+	    }
 
         $body        = trim($result);
         $plugin_info = unserialize($body);
 
-        return isset($plugin_info['download_url_latest']) ? $plugin_info['download_url_latest'] : '';
+        $download_url = isset($plugin_info['download_url_latest']) ? $plugin_info['download_url_latest'] : '';
+
+        if(empty($download_url)) {
+        	throw new Exception( 'Unable to find download URL. Check your Gravity Forms API key.' );
+        }
+
+        return $download_url;
     }
 
     /**
      * Returns package for given operation.
+     *
      * @param OperationInterface $operation
      * @return PackageInterface
      */
@@ -146,11 +140,14 @@ class Plugin implements PluginInterface, EventSubscriberInterface
         return $operation->getPackage();
     }
 
-    /**
-     * Retrieves environment variable for given key.
-     * @param string $key
-     * @return mixed
-     */
+	/**
+	 * Retrieves environment variable for given key.
+	 *
+	 * @param  string  $key
+	 *
+	 * @return mixed
+	 * @throws MissingEnvException
+	 */
     protected function getEnv($key)
     {
         // Retrieve env var
@@ -180,6 +177,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface
 
     /**
      * Retrieves placeholders for given url.
+     *
      * @param string $url
      * @return string[]
      */
@@ -195,6 +193,13 @@ class Plugin implements PluginInterface, EventSubscriberInterface
         return array_unique($placeholders);
     }
 
+	/**
+	 * Get the HTTP context for this URL
+	 *
+	 * @param $url
+	 *
+	 * @return resource
+	 */
     protected function getHttpContext($url)
     {
         return StreamContextFactory::getContext($url);
