@@ -78,7 +78,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface
             // Replace each placeholder with env var
             foreach ($placeholders as $placeholder) {
                 $value = $this->getEnv($placeholder);
-                $url   = str_replace('{%'.$placeholder.'}', $value, $url);
+                $url   = str_replace('{{'.$placeholder.'}}', $value, $url);
             }
 
             // Replace URL with Gravity Form's AWS url
@@ -184,7 +184,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface
     protected function getUrlPlaceholders($url)
     {
         $matches = [];
-        preg_match_all('/{%([A-Za-z0-9-_]+)}/', $url, $matches);
+        preg_match_all('/{{([A-Za-z0-9-_]+)}}/', $url, $matches);
 
         $placeholders = [];
         foreach ($matches[1] as $match) {
