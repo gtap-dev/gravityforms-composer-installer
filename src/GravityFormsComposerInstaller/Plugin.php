@@ -2,99 +2,49 @@
 
 namespace gotoAndDev\GravityFormsComposerInstaller;
 
-use Composer\Composer;
-use Composer\DependencyResolver\Operation\OperationInterface;
-use Composer\EventDispatcher\EventSubscriberInterface;
-use Composer\IO\IOInterface;
+use Exception;
 use Composer\Plugin\PluginEvents;
 use Composer\Plugin\PluginInterface;
 use Composer\Plugin\PreFileDownloadEvent;
 use Composer\Util\StreamContextFactory;
-use Dotenv\Dotenv;
-use Exception;
-use gotoAndDev\GravityFormsComposerInstaller\Exception\MissingEnvException;
+use Composer\EventDispatcher\EventSubscriberInterface;
 use gotoAndDev\GravityFormsComposerInstaller\Exception\DownloadException;
+use FFraenz\PrivateComposerInstaller\RemoteFilesystem;
 
-class Plugin implements PluginInterface, EventSubscriberInterface
+class Plugin extends \FFraenz\PrivateComposerInstaller\Plugin implements PluginInterface, EventSubscriberInterface
 {
 
     const GRAVITY_FORMS_API = 'www.gravityhelp.com';
 
-    /**
-     * @var Composer
-     */
-    protected $composer;
+    public static function getSubscribedEvents() {
+	    $events = parent::getSubscribedEvents();
 
-    /**
-     * @var IOInterface
-     */
-    protected $io;
-
-    /**
-     * @var boolean
-     */
-    protected $envInitialized = false;
-
-    /**
-     * Run PRE_FILE_DOWNLOAD before ffraenz/private-composer-installer and hirak/prestissimo
-     */
-    public static function getSubscribedEvents()
-    {
-	    return [
-		    PluginEvents::PRE_FILE_DOWNLOAD    => [ 'injectPlaceholders', 1 ],
+	    $localEvents = [
+		    PluginEvents::PRE_FILE_DOWNLOAD    => ['replaceDownloadUrl', -2],
 	    ];
+
+	    return array_merge( $events, $localEvents );
     }
 
-    /**
-     * @inheritdoc
-     */
-    public function activate(Composer $composer, IOInterface $io)
-    {
-        $this->composer = $composer;
-        $this->io = $io;
-    }
-
-	/**
-	 * Replaces placeholders with corresponding environment variables and replaces the download URL.
-	 *
-	 * @param  PreFileDownloadEvent  $event
-	 *
-	 * @return void
-	 * @throws DownloadException
-	 * @throws MissingEnvException
-	 */
-    public function injectPlaceholders(PreFileDownloadEvent $event)
-    {
-        $url = $event->getProcessedUrl();
+    public function replaceDownloadUrl(PreFileDownloadEvent $event): void {
+	    $url = $event->getProcessedUrl();
 
 	    if (strpos($url, self::GRAVITY_FORMS_API) === false) {
 		    return;
 	    }
 
-        // Check if package url contains any placeholders
-        $placeholders = $this->getUrlPlaceholders($url);
+	    $url = $this->getDownloadUrl($url);
 
-        if (count($placeholders) > 0) {
-            // Replace each placeholder with env var
-            foreach ($placeholders as $placeholder) {
-                $value = $this->getEnv($placeholder);
-                $url   = str_replace('{{'.$placeholder.'}}', $value, $url);
-            }
+	    // Download file from different location
+	    $originalRemoteFilesystem = $event->getRemoteFilesystem();
 
-            // Replace URL with Gravity Form's AWS url
-            $url = $this->getDownloadUrl($url);
-
-            // Download file from different location
-            $originalRemoteFilesystem = $event->getRemoteFilesystem();
-
-            $event->setRemoteFilesystem(new RemoteFilesystem(
-                $url,
-                $this->io,
-                $this->composer->getConfig(),
-                $originalRemoteFilesystem->getOptions(),
-                $originalRemoteFilesystem->isTlsDisabled()
-            ));
-        }
+	    $event->setRemoteFilesystem(new RemoteFilesystem(
+		    $url,
+		    $this->io,
+		    $this->composer->getConfig(),
+		    $originalRemoteFilesystem->getOptions(),
+		    $originalRemoteFilesystem->isTlsDisabled()
+	    ));
     }
 
 	/**
@@ -106,7 +56,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface
 	 * @throws DownloadException
 	 * @throws Exception
 	 */
-    public function getDownloadUrl($url)
+    protected function getDownloadUrl($url)
     {
 	    $result = file_get_contents($url, false, $this->getHttpContext($url));
 
@@ -124,73 +74,6 @@ class Plugin implements PluginInterface, EventSubscriberInterface
         }
 
         return $download_url;
-    }
-
-    /**
-     * Returns package for given operation.
-     *
-     * @param OperationInterface $operation
-     * @return PackageInterface
-     */
-    protected function getOperationPackage(OperationInterface $operation)
-    {
-        if ($operation->getJobType() === 'update') {
-            return $operation->getTargetPackage();
-        }
-        return $operation->getPackage();
-    }
-
-	/**
-	 * Retrieves environment variable for given key.
-	 *
-	 * @param  string  $key
-	 *
-	 * @return mixed
-	 * @throws MissingEnvException
-	 */
-    protected function getEnv($key)
-    {
-        // Retrieve env var
-        $value = getenv($key);
-
-        // Lazily initialize environment if env var is not set
-        if (empty($value) && ! $this->envInitialized) {
-            $this->envInitialized = true;
-
-            // Load dot env file if it exists
-            if (file_exists(getcwd() . DIRECTORY_SEPARATOR . '.env')) {
-                $dotenv = Dotenv::create(getcwd());
-                $dotenv->load();
-
-                // Retrieve env var from dot env file
-                $value = getenv($key);
-            }
-        }
-
-        // Check if env var is set
-        if (empty($value)) {
-            throw new MissingEnvException($key);
-        }
-
-        return $value;
-    }
-
-    /**
-     * Retrieves placeholders for given url.
-     *
-     * @param string $url
-     * @return string[]
-     */
-    protected function getUrlPlaceholders($url)
-    {
-        $matches = [];
-        preg_match_all('/{{([A-Za-z0-9-_]+)}}/', $url, $matches);
-
-        $placeholders = [];
-        foreach ($matches[1] as $match) {
-            array_push($placeholders, $match);
-        }
-        return array_unique($placeholders);
     }
 
 	/**
