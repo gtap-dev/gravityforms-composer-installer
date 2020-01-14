@@ -110,7 +110,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface
     {
 	    $result = file_get_contents($url, false, $this->getHttpContext($url));
 
-	    if( false === $result ) {
+	    if(false === $result) {
 		    throw new DownloadException($url);
 	    }
 
