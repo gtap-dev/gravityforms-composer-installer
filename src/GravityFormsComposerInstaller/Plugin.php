@@ -70,23 +70,23 @@ class Plugin extends \FFraenz\PrivateComposerInstaller\Plugin implements PluginI
 	 * @throws DownloadException
 	 * @throws Exception
 	 */
-    public function getDownloadUrl($url)
+    public function getDownloadUrl($url): string
     {
-	    $result = file_get_contents($url, false, StreamContextFactory::getContext($url));
+		$result = file_get_contents($url, false, StreamContextFactory::getContext($url));
 
-	    if(false === $result) {
+		if(false === $result) {
 		    throw new DownloadException($url);
-	    }
+		}
 
-        $body        = trim($result);
-        $plugin_info = unserialize($body);
+		$body        = trim($result);
+		$plugin_info = unserialize($body);
 
-        $download_url = isset($plugin_info['download_url_latest']) ? $plugin_info['download_url_latest'] : '';
+		$download_url = isset($plugin_info['download_url_latest']) ? $plugin_info['download_url_latest'] : '';
 
-        if(empty($download_url)) {
-        	throw new Exception( 'Unable to find download URL. Check your Gravity Forms API key.' );
-        }
+		if(empty($download_url)) {
+		    throw new Exception( 'Unable to find download URL. Check your Gravity Forms API key.' );
+		}
 
-        return $download_url;
+		return (string) $download_url;
     }
 }
