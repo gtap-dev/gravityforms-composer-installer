@@ -66,11 +66,11 @@ class Plugin extends \FFraenz\PrivateComposerInstaller\Plugin implements PluginI
      *
      * @param $url
      *
-     * @return string
+     * @return string The replaced gravity forms API URL.
      * @throws DownloadException
      * @throws Exception
      */
-    public function getDownloadUrl($url): string
+    public function getDownloadUrl(string $url): string
     {
         $result = file_get_contents($url, false, StreamContextFactory::getContext($url));
 
