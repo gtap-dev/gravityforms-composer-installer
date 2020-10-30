@@ -22,7 +22,7 @@
   "require": {
     "php": "^7.2 || ^8.0",
     "composer-plugin-api": "^1.0 || ^2.0",
-    "ffraenz/private-composer-installer": "^4.0 || ^5.0"
+    "ffraenz/private-composer-installer": "^5.0"
   },
   "require-dev": {
     "composer/composer": "^1.0 || ^2.0",
