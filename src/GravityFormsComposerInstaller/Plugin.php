@@ -2,10 +2,11 @@
 
 namespace gotoAndDev\GravityFormsComposerInstaller;
 
-use Composer\EventDispatcher\EventSubscriberInterface;
+use Exception;
 use Composer\Plugin\PluginInterface;
 use Composer\Util\StreamContextFactory;
-use Exception;
+use Composer\Plugin\PreFileDownloadEvent;
+use Composer\EventDispatcher\EventSubscriberInterface;
 use gotoAndDev\GravityFormsComposerInstaller\Exception\DownloadException;
 
 class Plugin extends \FFraenz\PrivateComposerInstaller\Plugin implements PluginInterface, EventSubscriberInterface
@@ -14,6 +15,20 @@ class Plugin extends \FFraenz\PrivateComposerInstaller\Plugin implements PluginI
      * Gravity Forms Plugin API endpoint.
      */
     const GRAVITY_FORMS_API = 'www.gravityhelp.com';
+
+    /**
+     * Fulfill package URL placeholders before downloading the package.
+     */
+    public function handlePreDownloadEvent(PreFileDownloadEvent $event): void
+    {
+        $url = $event->getProcessedUrl();
+
+        if (strpos($url, self::GRAVITY_FORMS_API) === false) {
+            return;
+        }
+
+        parent::handlePreDownloadEvent($event);
+    }
 
     /**
      * Get the AWS Download URL from the Gravity Forms API.
@@ -27,10 +42,6 @@ class Plugin extends \FFraenz\PrivateComposerInstaller\Plugin implements PluginI
     public function fulfillPlaceholders(?string $url): ?string
     {
         $url = parent::fulfillPlaceholders($url);
-
-        if (strpos($url, self::GRAVITY_FORMS_API) === false) {
-            throw new Exception('URL does not match the Gravity Forms API endpoint.');
-        }
 
         $result = file_get_contents($url, false, StreamContextFactory::getContext($url));
 
