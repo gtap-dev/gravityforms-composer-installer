@@ -2,67 +2,21 @@
 
 namespace gotoAndDev\GravityFormsComposerInstaller;
 
-use Exception;
+use Composer\EventDispatcher\EventSubscriberInterface;
 use Composer\Plugin\PluginInterface;
 use Composer\Util\StreamContextFactory;
-use Composer\Plugin\PreFileDownloadEvent;
-use Composer\EventDispatcher\EventSubscriberInterface;
+use Exception;
 use gotoAndDev\GravityFormsComposerInstaller\Exception\DownloadException;
-use FFraenz\PrivateComposerInstaller\RemoteFilesystem;
 
 class Plugin extends \FFraenz\PrivateComposerInstaller\Plugin implements PluginInterface, EventSubscriberInterface
 {
-
+    /**
+     * Gravity Forms Plugin API endpoint.
+     */
     const GRAVITY_FORMS_API = 'www.gravityhelp.com';
 
     /**
-     * Replaces placeholders with corresponding environment variables and overrides the download URL
-     *
-     * @param  PreFileDownloadEvent  $event
-     *
-     * @return void
-     * @throws DownloadException
-     * @throws \FFraenz\PrivateComposerInstaller\Exception\MissingEnvException
-     */
-    public function injectPlaceholders(PreFileDownloadEvent $event): void
-    {
-        $url = $event->getProcessedUrl();
-
-        if (strpos($url, self::GRAVITY_FORMS_API) === false) {
-            return;
-        }
-
-        // Check if package url contains any placeholders
-        $placeholders = $this->getUrlPlaceholders($url);
-
-        if (count($placeholders) > 0) {
-            // Replace each placeholder with env var
-            foreach ($placeholders as $placeholder) {
-                $value = $this->env->get($placeholder);
-                $url = str_replace('{%'.$placeholder.'}', $value, $url);
-            }
-
-            // Override the Gravity Forms' URL with the AWS URL retrieved from the API
-            $url = $this->getDownloadUrl($url);
-
-            // Download file from different location
-            $originalRemoteFilesystem = $event->getRemoteFilesystem();
-
-            $event->setRemoteFilesystem(new RemoteFilesystem(
-                $url,
-                $this->io,
-                $this->composer->getConfig(),
-                $originalRemoteFilesystem->getOptions(),
-                $originalRemoteFilesystem->isTlsDisabled()
-            ));
-
-            // Stop other events from running and overriding this
-            $event->stopPropagation();
-        }
-    }
-
-    /**
-     * Get the AWS Download URL from the Gravity Forms API
+     * Get the AWS Download URL from the Gravity Forms API.
      *
      * @param $url
      *
@@ -70,8 +24,14 @@ class Plugin extends \FFraenz\PrivateComposerInstaller\Plugin implements PluginI
      * @throws DownloadException
      * @throws Exception
      */
-    public function getDownloadUrl(string $url): string
+    public function fulfillPlaceholders(?string $url): ?string
     {
+        $url = parent::fulfillPlaceholders($url);
+
+        if (strpos($url, self::GRAVITY_FORMS_API) === false) {
+            throw new Exception('URL does not match the Gravity Forms API endpoint.');
+        }
+
         $result = file_get_contents($url, false, StreamContextFactory::getContext($url));
 
         if (false === $result) {
