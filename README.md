@@ -13,7 +13,7 @@ Add the desired private package to the `repositories` field inside `composer.jso
   "type": "package",
   "package": {
     "name": "gravityforms/gravityforms",
-    "version": "2.4.16.7",
+    "version": "2.4.21.3",
     "type": "wordpress-plugin",
     "dist": {
       "type": "zip",
@@ -21,7 +21,7 @@ Add the desired private package to the `repositories` field inside `composer.jso
     },
     "require": {
       "composer/installers": "^1.4",
-      "gotoandplay/gravityforms-composer-installer": "^2.0"
+      "gotoandplay/gravityforms-composer-installer": "^2.3"
     }
   }
 },
